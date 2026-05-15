@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Quantinda — Sari-Sari Store POS & Inventory",
   description:
     "A smart sari-sari store inventory and POS system for modern store operations.",
+  icons: { icon: "/logo-icon.png" },
 }
 
 export default function RootLayout({
