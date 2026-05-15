@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  CASHIER
+}
+
+enum PaymentMethod {
+  CASH
+}
+
+enum PurchaseOrderStatus {
+  PENDING
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+enum InventoryLogType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  SALE
+  RETURN
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   String?
+  currency  String   @default("PHP")
+  taxRate   Float    @default(0)
+  receiptFooter String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  products      Product[]
+  categories    Category[]
+  suppliers     Supplier[]
+  sales         Sale[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(CASHIER)
+  pin       String?
+  isActive  Boolean  @default(true)
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sales          Sale[]
+  purchaseOrders PurchaseOrder[]
+  inventoryLogs  InventoryLog[]
+
+  @@index([storeId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  description String?
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([name, storeId])
+  @@index([storeId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  sku         String?
+  barcode     String?
+  name        String
+  description String?
+  price       Float
+  cost        Float    @default(0)
+  unit        String   @default("pc")
+  stockQty    Float    @default(0)
+  reorderLevel Float   @default(0)
+  image       String?
+  isActive    Boolean  @default(true)
+  storeId     String
+  categoryId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  saleItems      SaleItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  inventoryLogs  InventoryLog[]
+
+  @@index([storeId])
+  @@index([barcode])
+  @@index([categoryId])
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  address   String?
+  storeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+
+  @@index([storeId])
+}
+
+model PurchaseOrder {
+  id         String              @id @default(cuid())
+  poNumber   String
+  status     PurchaseOrderStatus @default(PENDING)
+  total      Float               @default(0)
+  notes      String?
+  storeId    String
+  supplierId String?
+  userId     String
+  orderedAt  DateTime            @default(now())
+  receivedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  store    Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  supplier Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  user     User                @relation(fields: [userId], references: [id])
+  items    PurchaseOrderItem[]
+
+  @@index([storeId])
+  @@index([supplierId])
+}
+
+model PurchaseOrderItem {
+  id         String @id @default(cuid())
+  poId       String
+  productId  String
+  qty        Float
+  unitCost   Float
+  subtotal   Float
+  receivedQty Float @default(0)
+
+  po      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id])
+
+  @@index([poId])
+  @@index([productId])
+}
+
+model Sale {
+  id            String        @id @default(cuid())
+  receiptNo     String        @unique
+  subtotal      Float
+  tax           Float         @default(0)
+  discount      Float         @default(0)
+  total         Float
+  paymentMethod PaymentMethod @default(CASH)
+  tendered      Float
+  change        Float
+  notes         String?
+  storeId       String
+  userId        String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+  items       SaleItem[]
+
+  @@index([storeId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  saleId    String
+  productId String
+  qty       Float
+  unitPrice Float
+  subtotal  Float
+  cost      Float  @default(0)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model InventoryLog {
+  id        String            @id @default(cuid())
+  productId String
+  type      InventoryLogType
+  qty       Float
+  ref       String?
+  notes     String?
+  userId    String
+  createdAt DateTime          @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([createdAt])
+}
