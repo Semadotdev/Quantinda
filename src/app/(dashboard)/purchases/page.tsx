@@ -23,12 +23,12 @@ export default function PurchasesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Purchases</h1>
           <p className="mt-1 text-sm text-gray-500">Purchase orders and receiving</p>
         </div>
-        <button onClick={() => setFormOpen(true)} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl">
+        <button onClick={() => setFormOpen(true)} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl self-start sm:self-auto">
           <Plus className="h-4 w-4" /> New PO
         </button>
       </div>
@@ -183,8 +183,8 @@ function POForm({ onClose }: { onClose: () => void }) {
                       <option value="">Select product</option>
                       {productsData?.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    <input type="number" value={item.qty} onChange={(e) => updateRow(i, "qty", e.target.value)} placeholder="Qty" className="w-20 rounded-xl border border-gray-200 px-3 py-2 text-sm text-center focus:border-emerald-400 outline-none" />
-                    <div className="relative w-28">
+                    <input type="number" value={item.qty} onChange={(e) => updateRow(i, "qty", e.target.value)} placeholder="Qty" className="w-16 rounded-xl border border-gray-200 px-3 py-2 text-sm text-center focus:border-emerald-400 outline-none" />
+                    <div className="relative w-20">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">₱</span>
                       <input type="number" step="0.01" value={item.unitCost} onChange={(e) => updateRow(i, "unitCost", e.target.value)} className="w-full rounded-xl border border-gray-200 pl-6 pr-3 py-2 text-sm focus:border-emerald-400 outline-none" />
                     </div>

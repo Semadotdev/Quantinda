@@ -13,14 +13,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const body = await request.json()
-    const { name, email, password, pin, role, isActive } = body
+    const { name, email, password, pin, role, isActive, storeId } = body
 
-    const user = await prisma.user.findFirst({
-      where: { id, storeId: session.user.storeId },
-    })
-
+    const user = await prisma.user.findUnique({ where: { id } })
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    if (email && email !== user.email) {
+      const dup = await prisma.user.findUnique({ where: { email } })
+      if (dup) return NextResponse.json({ error: "Email already in use" }, { status: 409 })
+    }
+
+    if (storeId) {
+      const store = await prisma.store.findUnique({ where: { id: storeId } })
+      if (!store) return NextResponse.json({ error: "Store not found" }, { status: 404 })
     }
 
     const data: Record<string, unknown> = {}
@@ -30,11 +37,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (typeof isActive === "boolean") data.isActive = isActive
     if (pin !== undefined) data.pin = pin || null
     if (password) data.password = await hash(password, 12)
+    if (storeId) data.storeId = storeId
 
     const updated = await prisma.user.update({
       where: { id },
       data,
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, isActive: true, createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
     })
 
     return NextResponse.json(updated)
@@ -56,16 +67,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   try {
-    const user = await prisma.user.findFirst({
-      where: { id, storeId: session.user.storeId },
-    })
-
+    const user = await prisma.user.findUnique({ where: { id } })
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
     await prisma.user.delete({ where: { id } })
-
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: "Failed to delete user" }, { status: 500 })

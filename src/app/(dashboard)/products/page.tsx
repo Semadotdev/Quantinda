@@ -122,7 +122,7 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -197,122 +197,201 @@ export default function ProductsPage() {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Product
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Barcode
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Price
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Stock
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {displayData?.products.map((product) => (
-                        <tr
-                          key={product.id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-xs font-bold text-gray-400">
-                                {product.name.charAt(0)}
+                <div className="hidden md:block">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Product
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Barcode
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Price
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Stock
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {displayData?.products.map((product) => (
+                          <tr
+                            key={product.id}
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-xs font-bold text-gray-400">
+                                  {product.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {product.name}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    {product.unit}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  {product.name}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {product.unit}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {product.barcode ? (
-                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                                <Barcode className="h-3.5 w-3.5 text-gray-300" />
-                                {product.barcode}
-                              </div>
-                            ) : (
-                              <span className="text-sm text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            {product.category ? (
-                              <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                                {product.category.name}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-300">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="text-sm font-semibold text-gray-900">
-                              ₱
-                              {product.price.toLocaleString("en-PH", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </span>
-                            {product.cost > 0 && (
-                              <p className="text-xs text-gray-400">
-                                Cost: ₱
-                                {product.cost.toLocaleString("en-PH", {
+                            </td>
+                            <td className="px-4 py-3">
+                              {product.barcode ? (
+                                <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                  <Barcode className="h-3.5 w-3.5 text-gray-300" />
+                                  {product.barcode}
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {product.category ? (
+                                <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                                  {product.category.name}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="text-sm font-semibold text-gray-900">
+                                ₱
+                                {product.price.toLocaleString("en-PH", {
                                   minimumFractionDigits: 2,
                                 })}
+                              </span>
+                              {product.cost > 0 && (
+                                <p className="text-xs text-gray-400">
+                                  Cost: ₱
+                                  {product.cost.toLocaleString("en-PH", {
+                                    minimumFractionDigits: 2,
+                                  })}
+                                </p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                  product.stockQty <= 0
+                                    ? "bg-red-50 text-red-700"
+                                    : product.stockQty <= product.reorderLevel
+                                      ? "bg-yellow-50 text-yellow-700"
+                                      : "bg-green-50 text-green-700"
+                                )}
+                              >
+                                {product.stockQty}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {can("products.manage") && (
+                                <div className="flex justify-end gap-1">
+                                  <button
+                                    onClick={() => openEditForm(product.id)}
+                                    className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(product.id)}
+                                    className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="space-y-3 md:hidden">
+                  {displayData?.products.map((product) => (
+                    <div
+                      key={product.id}
+                      className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-blue-50 text-sm font-bold text-emerald-600">
+                            {product.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {product.name}
+                            </p>
+                            <p className="text-xs text-gray-400">{product.unit}</p>
+                            {product.barcode && (
+                              <p className="mt-0.5 text-xs text-gray-400 flex items-center gap-1">
+                                <Barcode className="h-3 w-3" />
+                                {product.barcode}
                               </p>
                             )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                                product.stockQty <= 0
-                                  ? "bg-red-50 text-red-700"
-                                  : product.stockQty <= product.reorderLevel
-                                    ? "bg-yellow-50 text-yellow-700"
-                                    : "bg-green-50 text-green-700"
-                              )}
-                            >
-                              {product.stockQty}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {can("products.manage") && (
+                            <>
+                              <button
+                                onClick={() => openEditForm(product.id)}
+                                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(product.id)}
+                                className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
+                        <div className="flex items-center gap-3">
+                          {product.category && (
+                            <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                              {product.category.name}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {can("products.manage") && (
-                              <div className="flex justify-end gap-1">
-                                <button
-                                  onClick={() => openEditForm(product.id)}
-                                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(product.id)}
-                                  className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
+                          )}
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              product.stockQty <= 0
+                                ? "bg-red-50 text-red-700"
+                                : product.stockQty <= product.reorderLevel
+                                  ? "bg-yellow-50 text-yellow-700"
+                                  : "bg-green-50 text-green-700"
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          >
+                            {product.stockQty} in stock
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-gray-900">
+                            ₱{product.price.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                          </p>
+                          {product.cost > 0 && (
+                            <p className="text-xs text-gray-400">Cost: ₱{product.cost.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {isOnline && displayData && displayData.total > displayData.limit && (

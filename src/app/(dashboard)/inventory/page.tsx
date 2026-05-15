@@ -90,7 +90,7 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -179,54 +179,133 @@ export default function InventoryPage() {
                 <p className="text-sm font-medium text-gray-500">No products found</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Product</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">On Hand</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Reorder At</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Status</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filteredProducts.map((product) => {
-                      const ratio = product.reorderLevel > 0
-                        ? product.stockQty / product.reorderLevel
-                        : 1
-                      const status =
-                        product.stockQty <= 0
-                          ? "out"
-                          : ratio <= 1 && product.reorderLevel > 0
-                            ? "low"
-                            : "ok"
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Product</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">On Hand</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Reorder At</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Status</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredProducts.map((product) => {
+                        const ratio = product.reorderLevel > 0
+                          ? product.stockQty / product.reorderLevel
+                          : 1
+                        const status =
+                          product.stockQty <= 0
+                            ? "out"
+                            : ratio <= 1 && product.reorderLevel > 0
+                              ? "low"
+                              : "ok"
 
-                      return (
-                        <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-xs font-bold text-gray-400">
-                                {product.name.charAt(0)}
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-xs font-bold text-gray-400">
+                                  {product.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                                  <p className="text-xs text-gray-400">{product.unit}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                                <p className="text-xs text-gray-400">{product.unit}</p>
-                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={cn(
+                                "text-sm font-semibold",
+                                status === "out" ? "text-red-600" : status === "low" ? "text-yellow-600" : "text-gray-900"
+                              )}>
+                                {product.stockQty}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm text-gray-500">
+                              {product.reorderLevel > 0 ? product.reorderLevel : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                status === "out" ? "bg-red-50 text-red-700" :
+                                status === "low" ? "bg-yellow-50 text-yellow-700" :
+                                "bg-green-50 text-green-700"
+                              )}>
+                                {status === "out" ? "Out of Stock" : status === "low" ? "Low Stock" : "In Stock"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {can("inventory.adjust") && (
+                                <button
+                                  onClick={() => setAdjustProduct(product)}
+                                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                >
+                                  Adjust
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="space-y-3 md:hidden">
+                  {filteredProducts.map((product) => {
+                    const ratio = product.reorderLevel > 0
+                      ? product.stockQty / product.reorderLevel
+                      : 1
+                    const status =
+                      product.stockQty <= 0
+                        ? "out"
+                        : ratio <= 1 && product.reorderLevel > 0
+                          ? "low"
+                          : "ok"
+
+                    return (
+                      <div
+                        key={product.id}
+                        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-blue-50 text-sm font-bold text-emerald-600">
+                              {product.name.charAt(0)}
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className={cn(
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                              <p className="text-xs text-gray-400">{product.unit}</p>
+                            </div>
+                          </div>
+                          {can("inventory.adjust") && (
+                            <button
+                              onClick={() => setAdjustProduct(product)}
+                              className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
+                            >
+                              Adjust
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
+                          <div>
+                            <p className="text-xs text-gray-400">On Hand</p>
+                            <p className={cn(
                               "text-sm font-semibold",
                               status === "out" ? "text-red-600" : status === "low" ? "text-yellow-600" : "text-gray-900"
                             )}>
                               {product.stockQty}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right text-sm text-gray-500">
-                            {product.reorderLevel > 0 ? product.reorderLevel : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-right">
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-400">Reorder At</p>
+                            <p className="text-sm text-gray-500">{product.reorderLevel > 0 ? product.reorderLevel : "—"}</p>
+                          </div>
+                          <div className="text-right">
                             <span className={cn(
                               "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                               status === "out" ? "bg-red-50 text-red-700" :
@@ -235,23 +314,13 @@ export default function InventoryPage() {
                             )}>
                               {status === "out" ? "Out of Stock" : status === "low" ? "Low Stock" : "In Stock"}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {can("inventory.adjust") && (
-                              <button
-                                onClick={() => setAdjustProduct(product)}
-                                className="rounded-lg px-3 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
-                              >
-                                Adjust
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
         </>
@@ -269,7 +338,7 @@ export default function InventoryPage() {
               ))}
             </select>
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
@@ -321,6 +390,60 @@ export default function InventoryPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {(!logsData || logsData.logs.length === 0) ? (
+              <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
+                <p className="text-sm text-gray-400">No inventory logs yet</p>
+              </div>
+            ) : (
+              logsData.logs.map((log) => (
+                <div
+                  key={log.id}
+                  className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">{log.product.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(log.createdAt).toLocaleString("en-PH", {
+                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <span className={cn(
+                      "shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      log.type === "STOCK_IN" ? "bg-green-50 text-green-700" :
+                      log.type === "STOCK_OUT" ? "bg-red-50 text-red-700" :
+                      log.type === "ADJUSTMENT" ? "bg-blue-50 text-blue-700" :
+                      log.type === "SALE" ? "bg-gray-50 text-gray-700" :
+                      "bg-purple-50 text-purple-700"
+                    )}>
+                      {log.type.replace("_", " ")}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
+                    <div>
+                      <p className="text-xs text-gray-400">User</p>
+                      <p className="text-sm text-gray-500">{log.user.name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-400">Qty</p>
+                      <p className={cn(
+                        "text-sm font-semibold",
+                        log.qty > 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        {log.qty > 0 ? `+${log.qty}` : log.qty}
+                      </p>
+                    </div>
+                  </div>
+                  {log.notes && (
+                    <p className="mt-2 text-xs text-gray-400">{log.notes}</p>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

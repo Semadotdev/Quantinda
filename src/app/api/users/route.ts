@@ -9,9 +9,14 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const isSuperAdmin = session.user.role === "SUPER_ADMIN"
+
   const users = await prisma.user.findMany({
-    where: { storeId: session.user.storeId },
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    where: isSuperAdmin ? undefined : { storeId: session.user.storeId },
+    select: {
+      id: true, name: true, email: true, role: true, isActive: true, createdAt: true,
+      store: { select: { id: true, name: true } },
+    },
     orderBy: { createdAt: "desc" },
   })
 
@@ -26,10 +31,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { name, email, password, pin, role } = body
+    const { name, email, password, pin, role, storeId } = body
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Name, email, and password are required" }, { status: 400 })
+    }
+
+    const targetStoreId = storeId || session.user.storeId
+
+    const store = await prisma.store.findUnique({ where: { id: targetStoreId } })
+    if (!store) {
+      return NextResponse.json({ error: "Store not found" }, { status: 404 })
     }
 
     const existing = await prisma.user.findUnique({ where: { email } })
@@ -46,9 +58,12 @@ export async function POST(request: Request) {
         password: hashedPassword,
         pin: pin || null,
         role: role || "CASHIER",
-        storeId: session.user.storeId,
+        storeId: targetStoreId,
       },
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, isActive: true, createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
     })
 
     return NextResponse.json(user, { status: 201 })

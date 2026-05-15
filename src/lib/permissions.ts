@@ -15,6 +15,7 @@ export type Permission =
   | "settings.view"
   | "pos.use"
   | "categories.manage"
+  | "stores.manage"
 
 const rolePermissions: Record<Role, Permission[]> = {
   SUPER_ADMIN: [
@@ -32,6 +33,7 @@ const rolePermissions: Record<Role, Permission[]> = {
     "settings.view",
     "pos.use",
     "categories.manage",
+    "stores.manage",
   ],
   ADMIN: [
     "products.manage",

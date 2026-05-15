@@ -46,12 +46,12 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
           <p className="mt-1 text-sm text-gray-500">Manage your suppliers</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl">
+        <button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl self-start sm:self-auto">
           <Plus className="h-4 w-4" /> Add Supplier
         </button>
       </div>
