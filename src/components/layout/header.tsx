@@ -17,9 +17,9 @@ export function Header() {
   const { dark, toggle } = useTheme()
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-gray-100 bg-white px-6 dark:border-gray-800 dark:bg-gray-900">
+    <header className="flex h-14 items-center justify-between border-b border-gray-100 bg-white px-6 max-lg:pl-14 dark:border-gray-800 dark:bg-gray-900">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h2 className="text-lg font-semibold text-gray-900 truncate dark:text-gray-100">
           {session?.user?.storeName || "Quantinda"}
         </h2>
       </div>

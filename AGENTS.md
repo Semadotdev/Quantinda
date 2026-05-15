@@ -31,6 +31,15 @@ NextAuth.js v5 with JWT strategy.
 Login: email/password or PIN.
 Roles: SUPER_ADMIN, ADMIN, CASHIER.
 
+## Tags System
+- `Tag` model (id, name, storeId) with `ProductTag` junction table for many-to-many.
+- Tags managed in Settings → Tags tab. CRUD via `/api/tags` and `/api/tags/[id]`.
+- Products can be tagged in the product form (pill toggle buttons).
+- Tags displayed as emerald badges on products page (table + mobile cards) and POS product cards.
+- Sales Reports can filter by tag to show best-selling products per tag.
+- Permission: `tags.manage` (SUPER_ADMIN + ADMIN).
+- Tags are store-scoped (unique per store).
+
 ## Project Structure
 - `src/app/(auth)/login` — Login page
 - `src/app/(dashboard)/` — Authenticated pages

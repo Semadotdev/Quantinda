@@ -9,6 +9,7 @@ export type OfflineProduct = {
   unit: string
   stockQty: number
   categoryName: string | null
+  tagNames: string[]
   updatedAt: string
 }
 

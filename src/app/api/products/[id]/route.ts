@@ -5,7 +5,10 @@ import { NextResponse } from "next/server"
 async function getProduct(id: string, storeId: string) {
   const product = await prisma.product.findFirst({
     where: { id, storeId },
-    include: { category: { select: { id: true, name: true } } },
+    include: {
+      category: { select: { id: true, name: true } },
+      tags: { include: { tag: { select: { id: true, name: true } } } },
+    },
   })
   return product
 }
@@ -39,7 +42,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const body = await request.json()
-  const { name, barcode, sku, price, cost, unit, stockQty, reorderLevel, categoryId, description, image, isActive } = body
+  const { name, barcode, sku, price, cost, unit, stockQty, reorderLevel, categoryId, description, image, isActive, tagIds } = body
+
+  if (tagIds !== undefined) {
+    await prisma.productTag.deleteMany({ where: { productId: id } })
+    if (tagIds.length > 0) {
+      await prisma.productTag.createMany({
+        data: tagIds.map((tagId: string) => ({ productId: id, tagId })),
+      })
+    }
+  }
 
   const product = await prisma.product.update({
     where: { id },
@@ -57,7 +69,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       ...(image !== undefined && { image }),
       ...(isActive !== undefined && { isActive }),
     },
-    include: { category: { select: { id: true, name: true } } },
+    include: {
+      category: { select: { id: true, name: true } },
+      tags: { include: { tag: { select: { id: true, name: true } } } },
+    },
   })
 
   return NextResponse.json(product)

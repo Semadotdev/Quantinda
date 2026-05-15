@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+export type ProductTag = {
+  tag: { id: string; name: string }
+}
+
 export type Product = {
   id: string
   name: string
@@ -16,6 +20,7 @@ export type Product = {
   isActive: boolean
   categoryId: string | null
   category: { id: string; name: string } | null
+  tags: ProductTag[]
   createdAt: string
   updatedAt: string
 }
@@ -38,6 +43,7 @@ type ProductFormData = {
   reorderLevel?: number
   categoryId?: string
   description?: string
+  tagIds?: string[]
 }
 
 export function useProducts(params: { q?: string; categoryId?: string; page?: number }) {

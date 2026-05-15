@@ -19,6 +19,7 @@ type Product = {
   stockQty: number
   unit: string
   category: { id: string; name: string } | null
+  tags: { tag: { id: string; name: string } }[]
 }
 
 type Category = {
@@ -59,8 +60,6 @@ export default function POSPage() {
   const [manualBarcode, setManualBarcode] = useState("")
   const [showManualBarcode, setShowManualBarcode] = useState(false)
   const [searchingBarcode, setSearchingBarcode] = useState(false)
-  const [showCartDrawer, setShowCartDrawer] = useState(false)
-
   const { data: categories } = useQuery<Category[]>({
     queryKey: ["categories"],
     queryFn: () => fetch("/api/categories").then((r) => r.json()),
@@ -92,6 +91,7 @@ export default function POSPage() {
           unit: p.unit,
           stockQty: p.stockQty,
           categoryName: p.category?.name ?? null,
+          tagNames: p.tags?.map((t: { tag: { name: string } }) => t.tag.name) ?? [],
           updatedAt: new Date().toISOString(),
         }))
       )
@@ -110,6 +110,7 @@ export default function POSPage() {
             stockQty: p.stockQty,
             unit: p.unit,
             category: p.categoryName ? { id: "", name: p.categoryName } : null,
+            tags: p.tagNames?.map((name) => ({ tag: { id: "", name } })) ?? [],
           }))
         )
       )
@@ -306,8 +307,8 @@ export default function POSPage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100dvh-56px)] lg:h-[calc(100dvh-5rem)] -m-6 overflow-x-hidden">
-      <div className="flex flex-1 flex-col overflow-hidden p-4 sm:p-6 max-lg:pb-20 lg:pr-0">
+    <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
         <div className="mb-4 flex items-center gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -316,7 +317,7 @@ export default function POSPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search products (F2)..."
-              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-3 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-3 max-sm:py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             />
           </div>
           <button
@@ -357,7 +358,7 @@ export default function POSPage() {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {isLoading && isOnline ? (
             <div className="flex items-center justify-center h-full">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
@@ -368,7 +369,7 @@ export default function POSPage() {
               <p className="text-sm font-medium text-gray-500">No products found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 min-w-0">
               {products.map((product) => (
                   <button
                     key={product.id}
@@ -390,6 +391,15 @@ export default function POSPage() {
                     <p className="mt-1.5 text-base max-sm:text-sm font-bold text-emerald-600">
                       ₱{product.price.toFixed(2)}
                     </p>
+                    {product.tags && product.tags.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap justify-center gap-1">
+                        {product.tags.map((pt) => (
+                          <span key={pt.tag.id} className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                            {pt.tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {product.stockQty <= product.stockQty && product.stockQty > 0 && product.stockQty <= 5 && (
                     <p className="mt-0.5 text-xs text-red-500">
                       {product.stockQty} left
@@ -400,9 +410,56 @@ export default function POSPage() {
             </div>
           )}
         </div>
+
+      <div className="shrink-0 lg:hidden border-t border-gray-100 bg-white max-h-[40dvh] flex flex-col">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-semibold text-gray-900">Cart ({itemCount()})</span>
+          </div>
+          {items.length > 0 && (
+            <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 transition-colors">
+              Clear all
+            </button>
+          )}
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-6 text-center px-4">
+              <ShoppingCart className="mb-2 h-6 w-6 text-gray-200" />
+              <p className="text-xs text-gray-400">Cart is empty</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {items.map((item) => (
+                <CartRow
+                  key={item.productId}
+                  item={item}
+                  stockQty={stockMap[item.productId] ?? 999}
+                  onUpdateQty={(qty) => updateQty(item.productId, qty)}
+                  onRemove={() => removeItem(item.productId)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="border-t border-gray-100 px-4 py-2 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Subtotal</span>
+            <span className="font-medium text-gray-900">₱{total.toFixed(2)}</span>
+          </div>
+          <button
+            onClick={() => setShowPayment(true)}
+            disabled={items.length === 0}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+          >
+            Pay (F8)
+          </button>
+        </div>
+      </div>
       </div>
 
-      <div className="hidden lg:flex w-80 shrink-0 flex-col border-l border-gray-100 bg-white">
+    <div className="hidden lg:flex w-80 shrink-0 flex-col border-l border-gray-100 bg-white">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-4 w-4 text-gray-400" />
@@ -620,73 +677,6 @@ export default function POSPage() {
         </div>
       )}
 
-      <button
-        onClick={() => setShowCartDrawer(true)}
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-xl lg:hidden"
-      >
-        <ShoppingCart className="h-5 w-5" />
-        {itemCount() > 0 && (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-emerald-600">
-            {itemCount()}
-          </span>
-        )}
-      </button>
-
-      {showCartDrawer && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setShowCartDrawer(false)} />
-          <div className="absolute bottom-0 left-0 right-0 flex max-h-[70vh] flex-col rounded-t-2xl bg-white p-4 pb-6 shadow-2xl">
-            <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-gray-200" />
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-semibold text-gray-900">Cart ({itemCount()})</span>
-              </div>
-              {items.length > 0 && (
-                <button onClick={clearCart} className="text-xs text-red-500 hover:text-red-600 transition-colors">
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              {items.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <ShoppingCart className="mb-2 h-8 w-8 text-gray-200" />
-                  <p className="text-sm text-gray-400">Cart is empty</p>
-                  <p className="text-xs text-gray-300">Tap products to add</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {items.map((item) => (
-                    <CartRow
-                      key={item.productId}
-                      item={item}
-                      stockQty={stockMap[item.productId] ?? 999}
-                      onUpdateQty={(qty) => updateQty(item.productId, qty)}
-                      onRemove={() => removeItem(item.productId)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-gray-100 pt-3 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="font-medium text-gray-900">₱{total.toFixed(2)}</span>
-              </div>
-              <button
-                onClick={() => { setShowCartDrawer(false); setShowPayment(true) }}
-                disabled={items.length === 0}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg disabled:opacity-50"
-              >
-                Pay (F8)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

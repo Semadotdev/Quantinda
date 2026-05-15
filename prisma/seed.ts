@@ -137,6 +137,58 @@ async function main() {
   }
 
   console.log(`Created ${productCount} sample products`)
+
+  const tagNames = [
+    "Diaper", "Best Seller", "New Arrival", "On Sale", "Limited Stock",
+    "Coffee & Tea", "Candy", "Noodles", "Bread & Pastry", "Frozen",
+    "Condiments", "Personal Care", "Baby Care", "Pet Food", "School Supply",
+    "Household", "Medicine", "Battery & Electronics", "Party Needs", "Religious",
+  ]
+
+  const tags = await Promise.all(
+    tagNames.map((name) =>
+      prisma.tag.upsert({
+        where: { name_storeId: { name, storeId: store.id } },
+        update: {},
+        create: { name, storeId: store.id },
+      })
+    )
+  )
+
+  console.log(`Created ${tags.length} tags`)
+
+  const tagMap = new Map(tags.map((t) => [t.name, t.id]))
+
+  const productTagAssignments: { barcode: string; tagName: string }[] = [
+    { barcode: "4800123456789", tagName: "Best Seller" },
+    { barcode: "4800123456790", tagName: "Best Seller" },
+    { barcode: "4800123456791", tagName: "On Sale" },
+    { barcode: "4800123456792", tagName: "Noodles" },
+    { barcode: "4800123456792", tagName: "Best Seller" },
+    { barcode: "4800123456793", tagName: "Noodles" },
+    { barcode: "4800123456794", tagName: "Limited Stock" },
+    { barcode: "4800123456794", tagName: "New Arrival" },
+    { barcode: "4800123456795", tagName: "Canned Goods" },
+    { barcode: "4800123456796", tagName: "Canned Goods" },
+    { barcode: "4800123456797", tagName: "Canned Goods" },
+    { barcode: "4800123456798", tagName: "Household" },
+    { barcode: "4800123456799", tagName: "Household" },
+    { barcode: "4800123456800", tagName: "Personal Care" },
+  ]
+
+  for (const { barcode, tagName } of productTagAssignments) {
+    const product = await prisma.product.findUnique({ where: { id: barcode } })
+    const tagId = tagMap.get(tagName)
+    if (product && tagId) {
+      await prisma.productTag.upsert({
+        where: { productId_tagId: { productId: product.id, tagId } },
+        update: {},
+        create: { productId: product.id, tagId },
+      })
+    }
+  }
+
+  console.log(`Assigned ${productTagAssignments.length} product tags`)
   console.log("Seed complete!")
 }
 

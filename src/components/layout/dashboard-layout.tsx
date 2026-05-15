@@ -22,12 +22,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex h-dvh bg-gray-50 dark:bg-gray-950">
       <OfflineSync />
       <Sidebar storeName={session?.user?.storeName || "Store"} />
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 min-w-0 flex-col">
         <Header />
-        <main className="flex-1 overflow-auto p-6 dark:text-gray-100">{children}</main>
+        <main className="flex-1 min-h-0 flex flex-col overflow-auto p-6 dark:text-gray-100">{children}</main>
       </div>
     </div>
   )

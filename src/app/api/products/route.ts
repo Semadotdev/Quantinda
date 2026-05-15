@@ -37,7 +37,10 @@ export async function GET(request: Request) {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: { select: { id: true, name: true } } },
+      include: {
+        category: { select: { id: true, name: true } },
+        tags: { include: { tag: { select: { id: true, name: true } } } },
+      },
       orderBy: { updatedAt: "desc" },
       skip,
       take: limit,
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { name, barcode, sku, price, cost, unit, stockQty, reorderLevel, categoryId, description, image } = body
+  const { name, barcode, sku, price, cost, unit, stockQty, reorderLevel, categoryId, description, image, tagIds } = body
 
   if (!name || price == null) {
     return NextResponse.json({ error: "Name and price are required" }, { status: 400 })
@@ -75,8 +78,14 @@ export async function POST(request: Request) {
       description,
       image,
       storeId: session.user.storeId,
+      tags: tagIds?.length
+        ? { create: tagIds.map((tagId: string) => ({ tagId })) }
+        : undefined,
     },
-    include: { category: { select: { id: true, name: true } } },
+    include: {
+      category: { select: { id: true, name: true } },
+      tags: { include: { tag: { select: { id: true, name: true } } } },
+    },
   })
 
   return NextResponse.json(product, { status: 201 })

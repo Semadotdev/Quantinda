@@ -8,12 +8,27 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const days = parseInt(searchParams.get("days") || "7")
+  const tagId = searchParams.get("tagId")
 
   const now = new Date()
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
   startDate.setHours(0, 0, 0, 0)
 
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  let productIdFilter: string[] | undefined
+  if (tagId) {
+    const taggedProducts = await prisma.productTag.findMany({
+      where: { tagId },
+      select: { productId: true },
+    })
+    productIdFilter = taggedProducts.map((pt) => pt.productId)
+  }
+
+  const saleItemWhere = {
+    sale: { storeId: session.user.storeId, createdAt: { gte: startDate } },
+    ...(productIdFilter ? { productId: { in: productIdFilter } } : {}),
+  }
 
   const [
     totalSales,
@@ -47,9 +62,7 @@ export async function GET(request: Request) {
     `,
     prisma.saleItem.groupBy({
       by: ["productId"],
-      where: {
-        sale: { storeId: session.user.storeId, createdAt: { gte: startDate } },
-      },
+      where: saleItemWhere,
       _sum: { qty: true, subtotal: true, cost: true },
       orderBy: { _sum: { subtotal: "desc" } },
       take: 10,

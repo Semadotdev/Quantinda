@@ -33,6 +33,7 @@ export default function ProductsPage() {
       stockQty: number
       reorderLevel: number
       category: { id: string; name: string } | null
+      tags: { tag: { id: string; name: string } }[]
     }[]
     total: number
     page: number
@@ -59,6 +60,7 @@ export default function ProductsPage() {
           unit: p.unit,
           stockQty: p.stockQty,
           categoryName: p.category?.name ?? null,
+          tagNames: p.tags?.map((t) => t.tag.name) ?? [],
           updatedAt: new Date().toISOString(),
         }))
       )
@@ -79,6 +81,7 @@ export default function ProductsPage() {
             stockQty: p.stockQty,
             reorderLevel: 0,
             category: p.categoryName ? { id: "", name: p.categoryName } : null,
+            tags: p.tagNames?.map((name) => ({ tag: { id: "", name } })) ?? [],
           })),
           total: cached.length,
           page: 1,
@@ -211,6 +214,9 @@ export default function ProductsPage() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                             Category
                           </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                            Tags
+                          </th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                             Price
                           </th>
@@ -261,6 +267,15 @@ export default function ProductsPage() {
                               ) : (
                                 <span className="text-sm text-gray-300">—</span>
                               )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {product.tags.map((pt: { tag: { id: string; name: string } }) => (
+                                  <span key={pt.tag.id} className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                                    {pt.tag.name}
+                                  </span>
+                                ))}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-right">
                               <span className="text-sm font-semibold text-gray-900">
@@ -390,6 +405,15 @@ export default function ProductsPage() {
                           )}
                         </div>
                       </div>
+                      {product.tags.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {product.tags.map((pt: { tag: { id: string; name: string } }) => (
+                            <span key={pt.tag.id} className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                              {pt.tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

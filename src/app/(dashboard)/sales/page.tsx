@@ -46,10 +46,21 @@ type Analytics = {
 
 export default function SalesPage() {
   const [days, setDays] = useState(7)
+  const [tagId, setTagId] = useState("")
+
+  const { data: tags } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["tags"],
+    queryFn: () => fetch("/api/tags").then((r) => r.json()),
+  })
 
   const { data, isLoading } = useQuery<Analytics>({
-    queryKey: ["sales-analytics", days],
-    queryFn: () => fetch(`/api/sales/analytics?days=${days}`).then((r) => r.json()),
+    queryKey: ["sales-analytics", days, tagId],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      params.set("days", String(days))
+      if (tagId) params.set("tagId", tagId)
+      return fetch(`/api/sales/analytics?${params}`).then((r) => r.json())
+    },
   })
 
   const summaryCards = data
@@ -96,7 +107,7 @@ export default function SalesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Sales Reports</h1>
           <p className="mt-1 text-sm text-gray-500">Analytics and sales performance</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[7, 30, 90].map((d) => (
             <button
               key={d}
@@ -111,6 +122,18 @@ export default function SalesPage() {
               {d}d
             </button>
           ))}
+          {tags && tags.length > 0 && (
+            <select
+              value={tagId}
+              onChange={(e) => setTagId(e.target.value)}
+              className="rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="">All tags</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -143,7 +166,7 @@ export default function SalesPage() {
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:col-span-2">
               <h2 className="mb-4 text-base font-semibold text-gray-900">Daily Sales Trend</h2>
               {data?.dailySales && data.dailySales.length > 0 ? (
-                <div className="h-72">
+                <div className="h-72 min-w-0 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.dailySales}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

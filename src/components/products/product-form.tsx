@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
+import { useQuery } from "@tanstack/react-query"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { X, Barcode, Loader2, Search } from "lucide-react"
+import { X, Barcode, Loader2, Search, Tag } from "lucide-react"
 import { Html5Qrcode } from "html5-qrcode"
 import { useCategories } from "@/hooks/use-categories"
 import { useCreateProduct, useUpdateProduct, useProduct } from "@/hooks/use-products"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -21,6 +23,7 @@ const productSchema = z.object({
   reorderLevel: z.coerce.number().min(0).optional(),
   categoryId: z.string().optional(),
   description: z.string().optional(),
+  tagIds: z.array(z.string()).optional(),
 })
 
 type ProductFormData = z.infer<typeof productSchema>
@@ -58,13 +61,20 @@ export function ProductForm({ productId, onClose }: ProductFormProps) {
   const { data: existingProduct } = useProduct(productId || null)
   const [scanning, setScanning] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [tagSearch, setTagSearch] = useState("")
   const html5Ref = useRef<Html5Qrcode | null>(null)
+
+  const { data: allTags } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["tags"],
+    queryFn: () => fetch("/api/tags").then((r) => r.json()),
+  })
 
   const {
     register,
     handleSubmit,
     setValue,
     getValues,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
@@ -80,11 +90,15 @@ export function ProductForm({ productId, onClose }: ProductFormProps) {
       reorderLevel: 0,
       categoryId: "",
       description: "",
+      tagIds: [],
     },
   })
 
+  const selectedTagIds = watch("tagIds") ?? []
+
   useEffect(() => {
     if (existingProduct) {
+      const tagIds = existingProduct.tags?.map((t) => t.tag.id) ?? []
       reset({
         name: existingProduct.name,
         barcode: existingProduct.barcode || "",
@@ -96,6 +110,7 @@ export function ProductForm({ productId, onClose }: ProductFormProps) {
         reorderLevel: existingProduct.reorderLevel,
         categoryId: existingProduct.categoryId || "",
         description: existingProduct.description || "",
+        tagIds,
       })
     }
   }, [existingProduct, reset])
@@ -312,6 +327,83 @@ export function ProductForm({ productId, onClose }: ProductFormProps) {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tags
+          </label>
+          {allTags && allTags.length > 0 ? (
+            <div className="relative">
+              {selectedTagIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {selectedTagIds.map((id) => {
+                    const tag = allTags.find((t) => t.id === id)
+                    if (!tag) return null
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 px-2.5 py-1 text-xs font-medium">
+                        {tag.name}
+                        <button
+                          type="button"
+                          onClick={() => setValue("tagIds", selectedTagIds.filter((tid) => tid !== id))}
+                          className="hover:text-emerald-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              <input
+                value={tagSearch}
+                onChange={(e) => setTagSearch(e.target.value)}
+                placeholder="Search tags..."
+                className="block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              {tagSearch && (
+                <div className="absolute z-10 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg max-h-48 overflow-y-auto">
+                  {(() => {
+                    const filtered = allTags.filter((t) =>
+                      t.name.toLowerCase().includes(tagSearch.toLowerCase())
+                    )
+                    return filtered.length > 0 ? (
+                      filtered.map((tag) => {
+                        const active = selectedTagIds.includes(tag.id)
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => {
+                              const next = active
+                                ? selectedTagIds.filter((id) => id !== tag.id)
+                                : [...selectedTagIds, tag.id]
+                              setValue("tagIds", next)
+                              setTagSearch("")
+                            }}
+                            className={cn(
+                              "flex w-full items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors",
+                              active
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "text-gray-600 hover:bg-gray-50"
+                            )}
+                          >
+                            <Tag className={cn("h-4 w-4", active ? "text-emerald-500" : "text-gray-300")} />
+                            <span className="flex-1">{tag.name}</span>
+                            {active && <span className="text-emerald-500 text-xs font-medium">Selected</span>}
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <p className="px-4 py-3 text-sm text-gray-400">No tags match</p>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">No tags available. Add tags in Settings first.</p>
+          )}
         </div>
 
         <div>

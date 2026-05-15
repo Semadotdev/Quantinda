@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Plus, Users, Shield, UserCog, Trash2, X, Package, Building2, Pencil } from "lucide-react"
+import { Plus, Users, Shield, UserCog, Trash2, X, Package, Building2, Pencil, Tag } from "lucide-react"
 import { usePermissions } from "@/hooks/use-permissions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: "users", label: "Users", icon: Users },
     { id: "categories", label: "Categories", icon: Package },
+    { id: "tags", label: "Tags", icon: Tag },
     ...(isSuperAdmin ? [{ id: "stores", label: "Stores", icon: Building2 }] : []),
   ]
 
@@ -92,6 +93,7 @@ export default function SettingsPage() {
 
       {tab === "users" && <UserSection />}
       {tab === "categories" && <CategorySection />}
+      {tab === "tags" && <TagSection />}
       {tab === "stores" && <StoreSection />}
     </div>
   )
@@ -356,6 +358,113 @@ function CategorySection() {
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setFormOpen(false)} className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
                 <button type="submit" disabled={createCategory.isPending || updateCategory.isPending} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">{editingId ? "Save" : "Create"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+type TagData = {
+  id: string
+  name: string
+  _count: { products: number }
+}
+
+function TagSection() {
+  const queryClient = useQueryClient()
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [name, setName] = useState("")
+
+  const { data: tags, isLoading } = useQuery<TagData[]>({
+    queryKey: ["tags"],
+    queryFn: () => fetch("/api/tags").then((r) => r.json()),
+  })
+
+  const createTag = useMutation({
+    mutationFn: (data: { name: string }) =>
+      fetch("/api/tags", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+        .then(async (r) => { if (!r.ok) { const e = await r.json(); throw new Error(e.error) }; return r.json() }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tags"] }); setFormOpen(false); toast.success("Tag created") },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const updateTag = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name: string } }) =>
+      fetch(`/api/tags/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+        .then(async (r) => { if (!r.ok) { const e = await r.json(); throw new Error(e.error) }; return r.json() }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tags"] }); setFormOpen(false); toast.success("Tag updated") },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const deleteTag = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/tags/${id}`, { method: "DELETE" }).then(async (r) => { if (!r.ok) { const e = await r.json(); throw new Error(e.error) }; return r.json() }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["tags"] }); toast.success("Tag deleted") },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  function openCreate() { setEditingId(null); setName(""); setFormOpen(true) }
+
+  function openEdit(tag: TagData) { setEditingId(tag.id); setName(tag.name); setFormOpen(true) }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (editingId) {
+      updateTag.mutate({ id: editingId, data: { name } })
+    } else {
+      createTag.mutate({ name })
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">Label products with tags for easy filtering and reporting</p>
+        <button onClick={openCreate} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl">
+          <Plus className="h-4 w-4" /> Add Tag
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-20"><div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" /></div>
+      ) : tags?.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-gray-100 bg-white"><Tag className="mb-3 h-12 w-12 text-gray-200" /><p className="text-sm font-medium text-gray-500">No tags yet</p></div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tags?.map((tag) => (
+            <div key={tag.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-blue-50">
+                  <Tag className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(tag)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => { if (confirm("Delete this tag? Products will keep their current tags.")) deleteTag.mutate(tag.id) }} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-gray-900">{tag.name}</h3>
+              <p className="mt-2 text-xs text-gray-400">{tag._count.products} product(s)</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {formOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">{editingId ? "Edit Tag" : "Add Tag"}</h2>
+              <button onClick={() => setFormOpen(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50"><X className="h-5 w-5" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Name *</label><input value={name} onChange={(e) => setName(e.target.value)} required className="block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100" placeholder="e.g. Diaper, Best Seller" /></div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setFormOpen(false)} className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" disabled={createTag.isPending || updateTag.isPending} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">{editingId ? "Save" : "Create"}</button>
               </div>
             </form>
           </div>
