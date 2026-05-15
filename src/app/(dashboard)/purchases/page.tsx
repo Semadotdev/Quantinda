@@ -94,7 +94,8 @@ export default function PurchasesPage() {
 }
 
 function POForm({ onClose }: { onClose: () => void }) {
-  const { data: suppliers } = useSuppliers()
+  const { data: suppliersData } = useSuppliers()
+  const suppliers = suppliersData?.suppliers
   const createPO = useCreatePO()
   const [supplierId, setSupplierId] = useState("")
   const [notes, setNotes] = useState("")

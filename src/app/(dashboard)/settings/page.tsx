@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Plus, Users, Shield, UserCog, Trash2, X, Package, Building2, Pencil, Tag } from "lucide-react"
 import { usePermissions } from "@/hooks/use-permissions"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -105,12 +106,17 @@ function UserSection() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<UserForm>({ name: "", email: "", password: "", pin: "", role: "CASHIER", storeId: "" })
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
 
-  const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["users"],
-    queryFn: () => fetch("/api/users").then((r) => r.json()),
+  const { data: usersData, isLoading } = useQuery<{ users: User[]; total: number; page: number; limit: number }>({
+    queryKey: ["users", page, limit],
+    queryFn: () => fetch(`/api/users?page=${page}&limit=${limit}`).then((r) => r.json()),
     enabled: isSuperAdmin,
   })
+  const users = usersData?.users
+  const total = usersData?.total ?? 0
 
   const { data: stores } = useQuery<Store[]>({
     queryKey: ["stores"],
@@ -202,7 +208,7 @@ function UserSection() {
                         <button onClick={() => openEdit(user)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
-                        <button onClick={() => { if (confirm("Delete this user?")) deleteUser.mutate(user.id) }} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => setDeleteUserId(user.id)} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
                       </div></td>
                     </tr>
                   ))}
@@ -221,7 +227,7 @@ function UserSection() {
                       <button onClick={() => openEdit(user)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={() => { if (confirm("Delete this user?")) deleteUser.mutate(user.id) }} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => setDeleteUserId(user.id)} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
@@ -234,6 +240,57 @@ function UserSection() {
           </>
         )}
       </div>
+
+      {total > limit && (
+        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Show</span>
+            <select
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+              className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="10">10</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span className="text-sm text-gray-400">entries</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-gray-400">
+              Page {page} of {Math.ceil(total / limit)}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(total / limit)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteUserId}
+        title="Delete User"
+        message="Delete this user?"
+        onConfirm={() => {
+          if (deleteUserId) deleteUser.mutate(deleteUserId)
+          setDeleteUserId(null)
+        }}
+        onCancel={() => setDeleteUserId(null)}
+        loading={deleteUser.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 pt-12">
@@ -269,6 +326,7 @@ function CategorySection() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
 
   const { data: categories, isLoading } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -334,7 +392,7 @@ function CategorySection() {
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => openEdit(cat)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => { if (confirm("Delete this category?")) deleteCategory.mutate(cat.id) }} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => setDeleteCategoryId(cat.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
               <h3 className="mt-3 text-sm font-semibold text-gray-900">{cat.name}</h3>
@@ -344,6 +402,18 @@ function CategorySection() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteCategoryId}
+        title="Delete Category"
+        message="Delete this category?"
+        onConfirm={() => {
+          if (deleteCategoryId) deleteCategory.mutate(deleteCategoryId)
+          setDeleteCategoryId(null)
+        }}
+        onCancel={() => setDeleteCategoryId(null)}
+        loading={deleteCategory.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -378,6 +448,7 @@ function TagSection() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState("")
+  const [deleteTagId, setDeleteTagId] = useState<string | null>(null)
 
   const { data: tags, isLoading } = useQuery<TagData[]>({
     queryKey: ["tags"],
@@ -443,7 +514,7 @@ function TagSection() {
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => openEdit(tag)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => { if (confirm("Delete this tag? Products will keep their current tags.")) deleteTag.mutate(tag.id) }} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => setDeleteTagId(tag.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
               <h3 className="mt-3 text-sm font-semibold text-gray-900">{tag.name}</h3>
@@ -452,6 +523,18 @@ function TagSection() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteTagId}
+        title="Delete Tag"
+        message="Delete this tag? Products will keep their current tags."
+        onConfirm={() => {
+          if (deleteTagId) deleteTag.mutate(deleteTagId)
+          setDeleteTagId(null)
+        }}
+        onCancel={() => setDeleteTagId(null)}
+        loading={deleteTag.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
@@ -479,6 +562,7 @@ function StoreSection() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ name: "", code: "", address: "", currency: "PHP", taxRate: "0", receiptFooter: "" })
+  const [deleteStoreId, setDeleteStoreId] = useState<string | null>(null)
 
   const { data: stores, isLoading } = useQuery<Store[]>({
     queryKey: ["stores"],
@@ -556,7 +640,7 @@ function StoreSection() {
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => openEdit(store)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-50 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => { if (confirm("Delete this store? This will also delete all associated data.")) deleteStore.mutate(store.id) }} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => setDeleteStoreId(store.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
@@ -572,6 +656,18 @@ function StoreSection() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteStoreId}
+        title="Delete Store"
+        message="Delete this store? This will also delete all associated data."
+        onConfirm={() => {
+          if (deleteStoreId) deleteStore.mutate(deleteStoreId)
+          setDeleteStoreId(null)
+        }}
+        onCancel={() => setDeleteStoreId(null)}
+        loading={deleteStore.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 pt-12">

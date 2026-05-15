@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   const query = searchParams.get("q") || ""
   const barcode = searchParams.get("barcode")
   const categoryId = searchParams.get("categoryId")
+  const tagId = searchParams.get("tagId")
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50")))
   const skip = (page - 1) * limit
@@ -32,6 +33,10 @@ export async function GET(request: Request) {
 
   if (categoryId) {
     where.categoryId = categoryId
+  }
+
+  if (tagId) {
+    where.tags = { some: { tagId } }
   }
 
   const [products, total] = await Promise.all([

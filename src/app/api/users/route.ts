@@ -3,24 +3,35 @@ import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth()
   if (!session?.user?.storeId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const { searchParams } = new URL(request.url)
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50")))
+  const skip = (page - 1) * limit
+
   const isSuperAdmin = session.user.role === "SUPER_ADMIN"
+  const where = isSuperAdmin ? undefined : { storeId: session.user.storeId }
 
-  const users = await prisma.user.findMany({
-    where: isSuperAdmin ? undefined : { storeId: session.user.storeId },
-    select: {
-      id: true, name: true, email: true, role: true, isActive: true, createdAt: true,
-      store: { select: { id: true, name: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  })
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      select: {
+        id: true, name: true, email: true, role: true, isActive: true, createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.user.count({ where }),
+  ])
 
-  return NextResponse.json(users)
+  return NextResponse.json({ users, total, page, limit })
 }
 
 export async function POST(request: Request) {

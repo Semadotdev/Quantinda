@@ -1,4 +1,4 @@
-export type Role = "SUPER_ADMIN" | "ADMIN" | "CASHIER"
+export type Role = "SUPER_ADMIN" | "ADMIN" | "CASHIER" | "TESTER"
 
 export type Permission =
   | "products.manage"
@@ -57,6 +57,22 @@ const rolePermissions: Record<Role, Permission[]> = {
     "inventory.view",
     "sales.view",
     "pos.use",
+  ],
+  TESTER: [
+    "products.manage",
+    "products.view",
+    "inventory.adjust",
+    "inventory.view",
+    "purchases.manage",
+    "purchases.view",
+    "suppliers.manage",
+    "suppliers.view",
+    "sales.view",
+    "sales.reports",
+    "settings.view",
+    "pos.use",
+    "categories.manage",
+    "tags.manage",
   ],
 }
 

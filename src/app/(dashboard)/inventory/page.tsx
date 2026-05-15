@@ -30,7 +30,7 @@ type Product = {
   category: { id: string; name: string } | null
 }
 
-type ProductsResponse = { products: Product[]; total: number }
+type ProductsResponse = { products: Product[]; total: number; page: number; limit: number }
 
 type Log = {
   id: string
@@ -42,33 +42,49 @@ type Log = {
   user: { name: string }
 }
 
-type LogsResponse = { logs: Log[]; total: number }
+type LogsResponse = { logs: Log[]; total: number; page: number; limit: number }
 
 export default function InventoryPage() {
   const { can } = usePermissions()
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("")
+  const [tagFilter, setTagFilter] = useState("")
   const [tab, setTab] = useState<"overview" | "history">("overview")
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null)
   const [logProductId, setLogProductId] = useState<string | null>(null)
   const [scanOpen, setScanOpen] = useState(false)
 
+  const [overviewPage, setOverviewPage] = useState(1)
+  const [overviewLimit, setOverviewLimit] = useState(50)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyLimit, setHistoryLimit] = useState(50)
+
+  const { data: tags } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["tags"],
+    queryFn: () => fetch("/api/tags").then((r) => r.json()),
+  })
+
   const { data, isLoading } = useQuery<ProductsResponse>({
-    queryKey: ["products", debouncedQuery],
+    queryKey: ["products", debouncedQuery, tagFilter, overviewPage, overviewLimit],
     queryFn: () => {
       const params = new URLSearchParams()
       if (debouncedQuery) params.set("q", debouncedQuery)
-      params.set("limit", "200")
+      if (tagFilter) params.set("tagId", tagFilter)
+      params.set("page", String(overviewPage))
+      params.set("limit", String(overviewLimit))
       return fetch(`/api/products?${params}`).then((r) => r.json())
     },
   })
 
   const { data: logsData } = useQuery<LogsResponse>({
-    queryKey: ["inventory-logs", logProductId],
+    queryKey: ["inventory-logs", logProductId, tagFilter, historyPage, historyLimit],
     queryFn: () => {
       const params = new URLSearchParams()
       if (logProductId) params.set("productId", logProductId)
+      if (tagFilter) params.set("tagId", tagFilter)
+      params.set("page", String(historyPage))
+      params.set("limit", String(historyLimit))
       return fetch(`/api/inventory/logs?${params}`).then((r) => r.json())
     },
   })
@@ -166,6 +182,16 @@ export default function InventoryPage() {
                 </button>
               ))}
             </div>
+            <select
+              value={tagFilter}
+              onChange={(e) => { setTagFilter(e.target.value); setOverviewPage(1) }}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="">All tags</option>
+              {tags?.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -321,20 +347,69 @@ export default function InventoryPage() {
                   })}
                 </div>
               </>
+
+            )}
+            {data && data.total > data.limit && (
+              <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">Show</span>
+                  <select
+                    value={overviewLimit}
+                    onChange={(e) => { setOverviewLimit(Number(e.target.value)); setOverviewPage(1) }}
+                    className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="10">10</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span className="text-sm text-gray-400">entries</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-gray-400">
+                    Page {data.page} of {Math.ceil(data.total / data.limit)}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setOverviewPage((p) => Math.max(1, p - 1))}
+                      disabled={overviewPage <= 1}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setOverviewPage((p) => p + 1)}
+                      disabled={overviewPage >= Math.ceil(data.total / data.limit)}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </>
       ) : (
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-          <div className="p-4">
+          <div className="flex gap-3 p-4">
             <select
               value={logProductId || ""}
               onChange={(e) => setLogProductId(e.target.value || null)}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
             >
               <option value="">All products</option>
               {data?.products.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select
+              value={tagFilter}
+              onChange={(e) => { setTagFilter(e.target.value); setHistoryPage(1) }}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="">All tags</option>
+              {tags?.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
               ))}
             </select>
           </div>
@@ -445,6 +520,44 @@ export default function InventoryPage() {
               ))
             )}
           </div>
+          {logsData && logsData.total > logsData.limit && (
+            <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">Show</span>
+                <select
+                  value={historyLimit}
+                  onChange={(e) => { setHistoryLimit(Number(e.target.value)); setHistoryPage(1) }}
+                  className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                >
+                  <option value="10">10</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="text-sm text-gray-400">entries</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-400">
+                  Page {logsData.page} of {Math.ceil(logsData.total / logsData.limit)}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                    disabled={historyPage <= 1}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setHistoryPage((p) => p + 1)}
+                    disabled={historyPage >= Math.ceil(logsData.total / logsData.limit)}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

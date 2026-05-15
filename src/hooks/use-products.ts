@@ -46,11 +46,13 @@ type ProductFormData = {
   tagIds?: string[]
 }
 
-export function useProducts(params: { q?: string; categoryId?: string; page?: number }) {
+export function useProducts(params: { q?: string; categoryId?: string; tagId?: string; page?: number; limit?: number }) {
   const searchParams = new URLSearchParams()
   if (params.q) searchParams.set("q", params.q)
   if (params.categoryId) searchParams.set("categoryId", params.categoryId)
+  if (params.tagId) searchParams.set("tagId", params.tagId)
   if (params.page) searchParams.set("page", String(params.page))
+  if (params.limit) searchParams.set("limit", String(params.limit))
 
   return useQuery<ProductsResponse>({
     queryKey: ["products", params],

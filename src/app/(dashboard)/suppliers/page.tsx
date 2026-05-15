@@ -3,13 +3,19 @@
 import { useState } from "react"
 import { Plus, Truck, Pencil, Trash2, Phone, Mail, MapPin } from "lucide-react"
 import { useSuppliers, useCreateSupplier, useUpdateSupplier, useDeleteSupplier, type Supplier } from "@/hooks/use-suppliers"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 
 export default function SuppliersPage() {
-  const { data: suppliers, isLoading } = useSuppliers()
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
+  const { data, isLoading } = useSuppliers({ page, limit })
+  const suppliers = data?.suppliers
+  const total = data?.total ?? 0
   const createSupplier = useCreateSupplier()
   const updateSupplier = useUpdateSupplier()
   const deleteSupplier = useDeleteSupplier()
   const [formOpen, setFormOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editing, setEditing] = useState<{ id: string; name: string; contact: string; phone: string; email: string; address: string } | null>(null)
   const [name, setName] = useState("")
   const [contact, setContact] = useState("")
@@ -40,8 +46,8 @@ export default function SuppliersPage() {
     setFormOpen(false)
   }
 
-  async function handleDelete(id: string) {
-    if (confirm("Delete this supplier?")) await deleteSupplier.mutateAsync(id)
+  function handleDelete(id: string) {
+    setDeleteId(id)
   }
 
   return (
@@ -65,7 +71,7 @@ export default function SuppliersPage() {
             <p className="text-sm font-medium text-gray-500">No suppliers yet</p>
           </div>
         ) : (
-          suppliers?.map((supplier) => (
+          suppliers?.map((supplier: Supplier) => (
             <div key={supplier.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50">
@@ -90,6 +96,57 @@ export default function SuppliersPage() {
           ))
         )}
       </div>
+
+      {total > limit && (
+        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Show</span>
+            <select
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+              className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="10">10</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span className="text-sm text-gray-400">entries</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-gray-400">
+              Page {page} of {Math.ceil(total / limit)}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(total / limit)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Supplier"
+        message="Delete this supplier?"
+        onConfirm={() => {
+          if (deleteId) deleteSupplier.mutate(deleteId)
+          setDeleteId(null)
+        }}
+        onCancel={() => setDeleteId(null)}
+        loading={deleteSupplier.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">

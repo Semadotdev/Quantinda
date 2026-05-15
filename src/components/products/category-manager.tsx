@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 
 export function CategoryManager() {
   const { data: categories, isLoading } = useCategories()
@@ -13,6 +14,7 @@ export function CategoryManager() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
   const [showAdd, setShowAdd] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   async function handleCreate() {
     if (!newName.trim()) return
@@ -28,9 +30,7 @@ export function CategoryManager() {
   }
 
   async function handleDelete(id: string) {
-    if (confirm("Delete this category? Products will be uncategorized.")) {
-      await deleteCategory.mutateAsync(id)
-    }
+    setDeleteId(id)
   }
 
   return (
@@ -131,6 +131,17 @@ export function CategoryManager() {
           ))}
         </div>
       )}
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Category"
+        message="Delete this category? Products will be uncategorized."
+        onConfirm={() => {
+          if (deleteId) deleteCategory.mutate(deleteId)
+          setDeleteId(null)
+        }}
+        onCancel={() => setDeleteId(null)}
+        loading={deleteCategory.isPending}
+      />
     </div>
   )
 }

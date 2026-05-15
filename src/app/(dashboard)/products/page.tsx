@@ -6,6 +6,7 @@ import { useProducts, useDeleteProduct } from "@/hooks/use-products"
 import { useCategories } from "@/hooks/use-categories"
 import { ProductForm } from "@/components/products/product-form"
 import { CategoryManager } from "@/components/products/category-manager"
+import { ConfirmModal } from "@/components/ui/confirm-modal"
 import { cn } from "@/lib/utils"
 import { useOnline } from "@/hooks/use-online"
 import { cacheProducts, getCachedProducts } from "@/lib/db"
@@ -16,9 +17,11 @@ export default function ProductsPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("")
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(50)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showCategories, setShowCategories] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const deleteProduct = useDeleteProduct()
   const isOnline = useOnline()
   const { can } = usePermissions()
@@ -44,6 +47,7 @@ export default function ProductsPage() {
     q: debouncedQuery,
     categoryId: categoryFilter,
     page,
+    limit,
   })
 
   const displayData = isOnline ? data : offlineData
@@ -118,9 +122,7 @@ export default function ProductsPage() {
   }
 
   function handleDelete(id: string) {
-    if (confirm("Delete this product? This cannot be undone.")) {
-      deleteProduct.mutate(id)
-    }
+    setDeleteId(id)
   }
 
   return (
@@ -420,24 +422,39 @@ export default function ProductsPage() {
 
                 {isOnline && displayData && displayData.total > displayData.limit && (
                   <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-                    <p className="text-sm text-gray-400">
-                      Page {displayData.page} of {Math.ceil(displayData.total / displayData.limit)}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">Show</span>
+                      <select
+                        value={limit}
+                        onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+                        className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                       >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => setPage((p) => p + 1)}
-                        disabled={page >= Math.ceil(displayData.total / displayData.limit)}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                      </select>
+                      <span className="text-sm text-gray-400">entries</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm text-gray-400">
+                        Page {displayData.page} of {Math.ceil(displayData.total / displayData.limit)}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={page <= 1}
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Previous
+                        </button>
+                        <button
+                          onClick={() => setPage((p) => p + 1)}
+                          disabled={page >= Math.ceil(displayData.total / displayData.limit)}
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -454,6 +471,18 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Product"
+        message="Delete this product? This cannot be undone."
+        onConfirm={() => {
+          if (deleteId) deleteProduct.mutate(deleteId)
+          setDeleteId(null)
+        }}
+        onCancel={() => setDeleteId(null)}
+        loading={deleteProduct.isPending}
+      />
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/30 p-4 pt-12">

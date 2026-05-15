@@ -11,10 +11,14 @@ export type Supplier = {
   _count: { purchaseOrders: number }
 }
 
-export function useSuppliers() {
-  return useQuery<Supplier[]>({
-    queryKey: ["suppliers"],
-    queryFn: () => fetch("/api/suppliers").then((r) => r.json()),
+export function useSuppliers(params?: { page?: number; limit?: number }) {
+  const searchParams = new URLSearchParams()
+  if (params?.page) searchParams.set("page", String(params.page))
+  if (params?.limit) searchParams.set("limit", String(params.limit))
+
+  return useQuery<{ suppliers: Supplier[]; total: number; page: number; limit: number }>({
+    queryKey: ["suppliers", params],
+    queryFn: () => fetch(`/api/suppliers?${searchParams}`).then((r) => r.json()),
   })
 }
 
