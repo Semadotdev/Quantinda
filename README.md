@@ -45,9 +45,6 @@ A modern, mobile-responsive point-of-sale and inventory management system built 
 
 | Role | Email | Password | Access |
 |------|-------|----------|--------|
-| **Super Admin** | admin@quantinda.com | admin123 | Full access — manage stores, users, all data |
-| **Admin** | manager@quantinda.com | admin123 | Manage products, inventory, purchases, sales |
-| **Cashier** | cashier@quantinda.com | cashier123 | POS terminal, view products and inventory |
 | **Tester** | tester@quantinda.com | tester123 | Full access to isolated demo data |
 
 > The **Tester** account operates in a completely separate **Demo Store**. All data created by the tester is isolated from the main store's data and can be reset anytime with `npm run db:demo-reset`.
